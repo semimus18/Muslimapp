@@ -1,0 +1,56 @@
+name: muslimapp
+description: A comprehensive Muslim app with prayer times, Qibla direction, and Islamic features.
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+  flutter: ">=3.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # The following adds the Cupertino Icons font to your application.
+  cupertino_icons: ^1.0.2
+  
+  # For HTTP requests (prayer times API)
+  http: ^1.1.0
+  
+  # For location services
+  geolocator: ^10.1.0
+  
+  # For permission handling
+  permission_handler: ^11.0.1
+  
+  # For compass/Qibla direction
+  flutter_compass: ^0.7.0
+  
+  # For Islamic date calculations
+  hijri: ^3.0.0
+  
+  # For local storage
+  shared_preferences: ^2.2.2
+  
+  # For icons
+  flutter_islamic_icons: ^2.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/
+    - assets/audio/
+
+  fonts:
+    - family: Amiri
+      fonts:
+        - asset: fonts/Amiri-Regular.ttf
+        - asset: fonts/Amiri-Bold.ttf
+          weight: 700
