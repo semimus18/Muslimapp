@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MuslimApp - Islamic Companion</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <h1><i class="fas fa-mosque"></i> MuslimApp</h1>
+            <p class="subtitle">Your Islamic Companion</p>
+        </header>
+
+        <!-- Navigation -->
+        <nav class="nav-menu">
+            <button class="nav-btn active" onclick="showTab('prayer-times')">
+                <i class="fas fa-pray"></i> Prayer Times
+            </button>
+            <button class="nav-btn" onclick="showTab('qibla')">
+                <i class="fas fa-compass"></i> Qibla
+            </button>
+            <button class="nav-btn" onclick="showTab('quran')">
+                <i class="fas fa-book"></i> Quran
+            </button>
+            <button class="nav-btn" onclick="showTab('tasbih')">
+                <i class="fas fa-hand-paper"></i> Tasbih
+            </button>
+            <button class="nav-btn" onclick="showTab('calendar')">
+                <i class="fas fa-calendar"></i> Calendar
+            </button>
+        </nav>
+
+        <!-- Content Sections -->
+        <main class="main-content">
+            <!-- Prayer Times Section -->
+            <section id="prayer-times" class="content-section active">
+                <h2>Prayer Times</h2>
+                <div class="location-info">
+                    <i class="fas fa-map-marker-alt"></i>
+                    <span id="current-location">Getting location...</span>
+                    <button id="refresh-location" onclick="refreshLocation()">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
+                <div class="prayer-grid">
+                    <div class="prayer-item">
+                        <span class="prayer-name">Fajr</span>
+                        <span class="prayer-time" id="fajr-time">--:--</span>
+                    </div>
+                    <div class="prayer-item">
+                        <span class="prayer-name">Dhuhr</span>
+                        <span class="prayer-time" id="dhuhr-time">--:--</span>
+                    </div>
+                    <div class="prayer-item">
+                        <span class="prayer-name">Asr</span>
+                        <span class="prayer-time" id="asr-time">--:--</span>
+                    </div>
+                    <div class="prayer-item">
+                        <span class="prayer-name">Maghrib</span>
+                        <span class="prayer-time" id="maghrib-time">--:--</span>
+                    </div>
+                    <div class="prayer-item">
+                        <span class="prayer-name">Isha</span>
+                        <span class="prayer-time" id="isha-time">--:--</span>
+                    </div>
+                </div>
+                <div class="next-prayer">
+                    <h3>Next Prayer</h3>
+                    <div class="next-prayer-info">
+                        <span id="next-prayer-name">Fajr</span>
+                        <span id="next-prayer-countdown">--:--:--</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Qibla Direction Section -->
+            <section id="qibla" class="content-section">
+                <h2>Qibla Direction</h2>
+                <div class="qibla-container">
+                    <div class="compass">
+                        <div class="compass-circle">
+                            <div class="compass-needle" id="qibla-needle">
+                                <i class="fas fa-location-arrow"></i>
+                            </div>
+                            <div class="compass-directions">
+                                <span class="direction north">N</span>
+                                <span class="direction east">E</span>
+                                <span class="direction south">S</span>
+                                <span class="direction west">W</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="qibla-info">
+                        <p><strong>Qibla Direction:</strong> <span id="qibla-degree">--°</span></p>
+                        <p><strong>Distance to Kaaba:</strong> <span id="kaaba-distance">-- km</span></p>
+                        <button onclick="findQibla()" class="btn-primary">
+                            <i class="fas fa-search"></i> Find Qibla
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Quran Reader Section -->
+            <section id="quran" class="content-section">
+                <h2>Quran Reader</h2>
+                <div class="quran-controls">
+                    <select id="surah-select" onchange="loadSurah()">
+                        <option value="">Select Surah</option>
+                        <option value="1">1. Al-Fatiha</option>
+                        <option value="2">2. Al-Baqarah</option>
+                        <option value="3">3. Ali 'Imran</option>
+                        <option value="112">112. Al-Ikhlas</option>
+                        <option value="113">113. Al-Falaq</option>
+                        <option value="114">114. An-Nas</option>
+                    </select>
+                </div>
+                <div class="quran-text" id="quran-text">
+                    <p class="placeholder">Select a Surah to read</p>
+                </div>
+            </section>
+
+            <!-- Tasbih Counter Section -->
+            <section id="tasbih" class="content-section">
+                <h2>Digital Tasbih</h2>
+                <div class="tasbih-container">
+                    <div class="counter-display">
+                        <span class="count-number" id="tasbih-count">0</span>
+                        <span class="count-label">Count</span>
+                    </div>
+                    <div class="tasbih-buttons">
+                        <button class="count-btn" onclick="incrementCount()">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                        <button class="reset-btn" onclick="resetCount()">
+                            <i class="fas fa-undo"></i> Reset
+                        </button>
+                    </div>
+                    <div class="dhikr-presets">
+                        <h3>Common Dhikr</h3>
+                        <div class="dhikr-buttons">
+                            <button onclick="setDhikr('SubhanAllah', 33)">SubhanAllah (33x)</button>
+                            <button onclick="setDhikr('Alhamdulillah', 33)">Alhamdulillah (33x)</button>
+                            <button onclick="setDhikr('Allahu Akbar', 34)">Allahu Akbar (34x)</button>
+                        </div>
+                    </div>
+                    <div class="current-dhikr" id="current-dhikr">
+                        <span id="dhikr-text">Click count to begin</span>
+                        <span id="dhikr-target"></span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Islamic Calendar Section -->
+            <section id="calendar" class="content-section">
+                <h2>Hijri Calendar</h2>
+                <div class="calendar-info">
+                    <div class="date-display">
+                        <div class="gregorian-date">
+                            <span class="date-label">Gregorian</span>
+                            <span class="date-value" id="gregorian-date">--</span>
+                        </div>
+                        <div class="hijri-date">
+                            <span class="date-label">Hijri</span>
+                            <span class="date-value" id="hijri-date">--</span>
+                        </div>
+                    </div>
+                    <div class="islamic-events">
+                        <h3>Upcoming Islamic Events</h3>
+                        <div class="events-list" id="islamic-events">
+                            <p>Loading events...</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
