@@ -1,0 +1,10 @@
+{
+  "location": "Petaling Jaya, Selangor",
+  "prayers": [
+    { "name": "Fajr", "time": "05:45", "icon": "🌅", "colors": ["#818CF8", "#A78BFA", "#F472B6"] },
+    { "name": "Dhuhr", "time": "13:15", "icon": "☀️", "colors": ["#FBBF24", "#F97316", "#EF4444"] },
+    { "name": "Asr", "time": "16:30", "icon": "🌤️", "colors": ["#F59E0B", "#EAB308", "#F97316"] },
+    { "name": "Maghrib", "time": "19:20", "icon": "🌇", "colors": ["#F97316", "#EF4444", "#EC4899"] },
+    { "name": "Isha", "time": "20:35", "icon": "🌙", "colors": ["#3B82F6", "#6366F1", "#8B5CF6"] }
+  ]
+}
