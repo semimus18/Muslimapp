@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_flutter/lucide_flutter.dart';
 import 'package:muslimapp/prayer_model.dart'; // Import pakej ikon
+import 'package:muslimapp/zone_model.dart';
 
 class HomeScreen extends StatelessWidget {
 
@@ -9,17 +10,27 @@ class HomeScreen extends StatelessWidget {
   final Prayer nextPrayer;
   final List<Prayer> dailyPrayers; // BARU
   final String location; // BARU
+  final List<EsolatZone> allZones;
+  final String selectedZoneCode;
+  
 
   const HomeScreen({
     super.key,
     required this.textColor,
     required this.nextPrayer,
     required this.dailyPrayers,
-    required this.location
+    required this.location,
+    required this.allZones,
+    required this.selectedZoneCode,
   });
 
   @override
   Widget build (BuildContext context){
+    final selectedZone = allZones.firstWhere(
+      (zone) => zone.code == selectedZoneCode,
+      orElse: ()=>EsolatZone(code: '?', state: '', description: ''));
+
+    final zonDesc = selectedZone.description;
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24.0),
@@ -29,7 +40,7 @@ class HomeScreen extends StatelessWidget {
           children: [
             _buildHeader(),
             const SizedBox(height: 24,),
-            _buildNextPrayerCard(),
+            _buildNextPrayerCard(zonDesc),
             const SizedBox(height: 32,),
             _buildDailyPrayerList(),
           ],
@@ -70,7 +81,7 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildNextPrayerCard(){
+  Widget _buildNextPrayerCard(final zonDesc){
     // ... di dalam _buildNextPrayerCard()
 final formattedTime =
     '${NumberFormat("00").format(nextPrayer.time.hour)}:${NumberFormat("00").format(nextPrayer.time.minute)}';
@@ -120,7 +131,7 @@ final formattedTime =
           ),
           SizedBox(height: 16,),
           Text(
-            location,
+            zonDesc,
             style: TextStyle(
               fontSize: 14,
               color: Colors.white70

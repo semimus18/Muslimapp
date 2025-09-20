@@ -4,6 +4,7 @@ import 'package:muslimapp/home_screen.dart';
 import 'package:muslimapp/themes.dart'; // Import fail tema kita
 import 'prayer_service.dart';
 import 'prayer_model.dart';
+import 'zone_model.dart';
 
 void main() {
   runApp(const IslamVerseApp());
@@ -20,11 +21,12 @@ class _IslamVerseAppState extends State<IslamVerseApp> {
   DateTime _currentTime = DateTime.now();
   Timer? _timer;
   late final Future<PrayerData> _prayerDataFuture;
+  String _selectedZoneCode = 'WLY01'; // Zon lalai
 
   @override
   void initState() {
     super.initState();
-    _prayerDataFuture = loadPrayerTimes();
+    _prayerDataFuture = loadPrayerTimes(zoneCode: _selectedZoneCode);
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (mounted) { // Amalan baik: pastikan widget masih wujud
         setState(() {
@@ -38,6 +40,16 @@ class _IslamVerseAppState extends State<IslamVerseApp> {
   void dispose() {
     _timer?.cancel();
     super.dispose();
+  }
+
+  void _onZoneChanged(String? newZoneCode) {
+    if (newZoneCode != null && newZoneCode != _selectedZoneCode) {
+      setState(() {
+        _selectedZoneCode = newZoneCode;
+        // Panggil semula API dengan zon baru
+        _prayerDataFuture = loadPrayerTimes(zoneCode: _selectedZoneCode);
+      });
+    }
   }
 
   // Fungsi yang dikemas kini: Lebih mudah dibaca dan lebih selamat
@@ -117,6 +129,10 @@ class _IslamVerseAppState extends State<IslamVerseApp> {
                   nextPrayer: nextPrayer,
                   dailyPrayers: prayerData.dailyPrayers,
                   location: prayerData.location,
+                  // BARU: Hantar senarai zon, zon terpilih, dan fungsi callback
+                  allZones: esolatZones,
+                  selectedZoneCode: _selectedZoneCode,
+                  // onZoneChanged: _onZoneChanged,
                 ),
               );
             }
