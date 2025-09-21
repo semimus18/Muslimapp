@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_flutter/lucide_flutter.dart';
 import 'package:muslimapp/models/features_model.dart';
 import 'package:muslimapp/models/prayer_model.dart'; // Import pakej ikon
 import 'package:muslimapp/models/zone_model.dart';
+import 'package:muslimapp/providers/time_provider.dart';
+import 'package:muslimapp/providers/prayer_provider.dart';
 
 
 class HomeScreen extends StatelessWidget {
@@ -28,44 +31,67 @@ class HomeScreen extends StatelessWidget {
     required this.onZoneChanged,
   });
 
-  @override
-  Widget build (BuildContext context){
-    final selectedZone = allZones.firstWhere(
-      (zone) => zone.code == selectedZoneCode,
-      orElse: ()=>EsolatZone(code: '?', state: '', description: ''));
+@override
+Widget build(BuildContext context) {
+  final selectedZone = allZones.firstWhere(
+    (zone) => zone.code == selectedZoneCode,
+    orElse: () => EsolatZone(code: '?', state: '', description: ''),
+  );
 
-    final zonDesc = selectedZone.description;
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24.0),
-        child: Column(
-          //kad jadi lebar
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _buildHeader(),
-            const SizedBox(height: 24,),
-            _buildNextPrayerCard(zonDesc),
-            const SizedBox(height: 32,),
-            _buildDailyPrayerList(),
-            const SizedBox(height: 32,),
-            const Text(
-              'Features',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF1E3A8A)
-              ),
+  final zonDesc = selectedZone.description;
+  return SafeArea(
+  child: LayoutBuilder(
+    builder: (context, constraints) {
+      return SingleChildScrollView(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            minHeight: constraints.maxHeight, // Guna ketinggian MAKSIMUM YANG DIBENARKAN
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _buildHeader(),
+                const SizedBox(height: 24),
+                _buildNextPrayerCard(zonDesc),
+                const SizedBox(height: 32),
+                _buildDailyPrayerList(),
+                const SizedBox(height: 32),
+                const Text(
+                  'Features',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1E3A8A),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                _buildFeaturesList(),
+                const SizedBox(height: 24),
+              ],
             ),
-            const SizedBox(height: 10,),
-            _buildFeaturesList(),
-          ],
+          ),
         ),
-      ),
-    );
-  }
+      );
+    }
+    ),
+  );
+}
+
  
   Widget _buildHeader(){
-    return Column(
+    return Consumer(
+      builder: (context, ref, child) {
+        final currentTimeAsync = ref.watch(currentTimeProvider);
+        
+        // 3. Dapatkan nilai DateTime, guna waktu semasa sebagai sandaran
+        final currentTime = currentTimeAsync.valueOrNull ?? DateTime.now();
+
+        // 4. Format masa untuk paparan (HH:MM:SS)
+        final formattedTime = DateFormat('HH:mm:ss').format(currentTime);
+
+        return Column(
       children: [
         const Text(
           'IslamVerse ✨',
@@ -75,25 +101,39 @@ class HomeScreen extends StatelessWidget {
             color: Color(0xFF1E3A8A),
           ),
         ),
-        const SizedBox(height: 4,),
+            const SizedBox(height: 8),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(LucideIcons.sparkle,size: 14, color: textColor.withOpacity(0.8)),
             const SizedBox(width: 8,),
             Text(
-              '28 Muharram 1446H',
+              ref.watch(hijriDateProvider),
               style: TextStyle(
                 fontSize: 14,
-                color: textColor,
+                color: Color(0xFF1E3A8A),
               ),
             ),
             const SizedBox(width: 8,),
-            Icon(LucideIcons.sparkle,size: 14, color: textColor.withOpacity(0.8))
+            Icon(LucideIcons.sparkle,size: 14, color: Color(0xFF1E3A8A).withOpacity(0.8))
+            
           ],
-        )
+        ),
+        const SizedBox(height: 2),
+            // PAPARKAN JAM DIGITAL DI SINI
+            Text(
+              formattedTime,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF1E3A8A),
+              ),
+            ),
       ],
     );
+      }
+    );
+    
   }
 
   Widget _buildNextPrayerCard(final zonDesc){
@@ -177,13 +217,13 @@ final formattedTime =
     final formatedTime = '${prayer.time.hour.toString().padLeft(2,'0')}:${prayer.time.minute.toString().padLeft(2,'0')}';
     final bool isNextPrayer = prayer.name ==nextPrayer.name;
     return Container(
-      padding: const EdgeInsets.all(5),
+      padding: const EdgeInsets.all(0),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(15),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.15),
+            color: Colors.black.withOpacity(0.15),
             blurRadius: 20,
             offset: const Offset(0, 10)
           )

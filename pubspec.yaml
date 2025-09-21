@@ -38,6 +38,8 @@ dependencies:
   lucide_flutter: 0.544.0
   http: ^1.2.1
   flutter_riverpod: ^2.5.1
+  shared_preferences: ^2.2.3
+  hijri_calendar: ^1.0.7
 dev_dependencies:
   flutter_test:
     sdk: flutter

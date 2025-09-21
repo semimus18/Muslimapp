@@ -1,12 +1,17 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:muslimapp/screens/home_screen.dart';
-import 'package:muslimapp/themes/themes.dart'; // Import fail tema kita
-import 'package:muslimapp/widgets/glassmorphic_container.dart';
-import 'services/prayer_service.dart';
-import 'models/zone_model.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+// Import provider
 import 'package:muslimapp/providers/zone_provider.dart';
+import 'package:muslimapp/providers/prayer_provider.dart';
+import 'package:muslimapp/providers/time_provider.dart'; // 1. IMPORT PROVIDER BARU
+
+// Import UI dan lain-lain
+import 'package:muslimapp/screens/home_screen.dart';
+import 'package:muslimapp/themes/themes.dart';
+import 'package:muslimapp/widgets/glassmorphic_container.dart';
+import 'package:muslimapp/services/prayer_service.dart';
+import 'package:muslimapp/models/zone_model.dart';
 import 'package:muslimapp/models/prayer_model.dart' as PrayerModel;
 
 void main() {
@@ -24,63 +29,58 @@ class IslamVerseApp extends ConsumerStatefulWidget  {
 }
 
 class _IslamVerseAppState extends ConsumerState<IslamVerseApp> {
-  DateTime _currentTime = DateTime.now();
-  Timer? _timer;
-  late final Future<PrayerModel.PrayerData> _prayerDataFuture;
+  // DateTime _currentTime = DateTime.now();
+  // Timer? _timer;
+  // late final Future<PrayerModel.PrayerData> _prayerDataFuture;
 
-  @override
-  void initState() {
-    super.initState();
-    final initialZone = ref.read(zoneProvider);
-    _prayerDataFuture = loadPrayerTimes(zoneCode: initialZone);
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (mounted) { // Amalan baik: pastikan widget masih wujud
-        setState(() {
-          _currentTime = DateTime.now();
-        });
-      }
-    });
-  }
+  // @override
+  // void initState() {
+  //   super.initState();
+  //   final initialZone = ref.read(zoneProvider);
+  //   _prayerDataFuture = loadPrayerTimes(zoneCode: initialZone);
+  //   _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+  //     if (mounted) { // Amalan baik: pastikan widget masih wujud
+  //       setState(() {
+  //         _currentTime = DateTime.now();
+  //       });
+  //     }
+  //   });
+  // }
 
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
-  }
+  // @override
+  // void dispose() {
+  //   _timer?.cancel();
+  //   super.dispose();
+  // }
 
   void _onZoneChanged(String? newZoneCode) {
     if (newZoneCode != null && newZoneCode != ref.read(zoneProvider)) {
       ref.read(zoneProvider.notifier).setZone(newZoneCode);
-      setState(() {
+      // setState(() {
         
-        // Panggil semula API dengan zon baru
-        _prayerDataFuture = loadPrayerTimes(zoneCode: newZoneCode);
-      });
+      //   // Panggil semula API dengan zon baru
+      //   _prayerDataFuture = loadPrayerTimes(zoneCode: newZoneCode);
+      // });
     }
   }
 
   // Fungsi yang dikemas kini: Lebih mudah dibaca dan lebih selamat
   AppTheme _getCurrentTheme(List<PrayerModel.Prayer> prayers) {
-    final now = TimeOfDay.fromDateTime(_currentTime);
+    final now = TimeOfDay.fromDateTime(DateTime.now());
     
-    // Fungsi untuk membandingkan masa dengan selamat
-    bool isAfter(TimeOfDay time) => now.hour > time.hour || (now.hour == time.hour && now.minute >= time.minute);
-
-    // Dapatkan waktu solat dari senarai untuk perbandingan yang tepat
-    final timeFajr = prayers.firstWhere((p) => p.name == 'Fajr').time;
-    final timeDhuhr = prayers.firstWhere((p) => p.name == 'Dhuhr').time;
-    final timeAsr = prayers.firstWhere((p) => p.name == 'Asr').time;
-    final timeMaghrib = prayers.firstWhere((p) => p.name == 'Maghrib').time;
-    final timeIsha = prayers.firstWhere((p) => p.name == 'Isha').time;
-
-    if (isAfter(timeFajr) && !isAfter(timeDhuhr)) return AppThemes.fajr;
-    if (isAfter(timeDhuhr) && !isAfter(timeAsr)) return AppThemes.dhuhr;
-    if (isAfter(timeAsr) && !isAfter(timeMaghrib)) return AppThemes.asr;
-    if (isAfter(timeMaghrib) && !isAfter(timeIsha)) return AppThemes.maghrib;
-    if (isAfter(timeIsha)) return AppThemes.isha;
-
-    // Untuk waktu antara tengah malam dan sebelum Subuh
-    return AppThemes.night;
+    if (prayers.isEmpty) return AppThemes.fajr;
+    final fajrTime = prayers.firstWhere((p) => p.name == 'Subuh', orElse: () => prayers[0]).time;
+    final dhuhrTime = prayers.firstWhere((p) => p.name == 'Zohor', orElse: () => prayers[1]).time;
+    final asrTime = prayers.firstWhere((p) => p.name == 'Asar', orElse: () => prayers[2]).time;
+    final maghribTime = prayers.firstWhere((p) => p.name == 'Maghrib', orElse: () => prayers[3]).time;
+    final ishaTime = prayers.firstWhere((p) => p.name == 'Isyak', orElse: () => prayers[4]).time;
+    double toDouble(TimeOfDay t) => t.hour + t.minute / 60.0;
+    final nowDouble = toDouble(now);
+    if (nowDouble >= toDouble(fajrTime) && nowDouble < toDouble(dhuhrTime)) return AppThemes.fajr;
+    if (nowDouble >= toDouble(dhuhrTime) && nowDouble < toDouble(asrTime)) return AppThemes.dhuhr;
+    if (nowDouble >= toDouble(asrTime) && nowDouble < toDouble(maghribTime)) return AppThemes.asr;
+    if (nowDouble >= toDouble(maghribTime) && nowDouble < toDouble(ishaTime)) return AppThemes.maghrib;
+    return AppThemes.isha;
   }
 
   @override
@@ -90,70 +90,52 @@ class _IslamVerseAppState extends ConsumerState<IslamVerseApp> {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(fontFamily: 'Poppins'),
       home: Scaffold(
-        body: FutureBuilder<PrayerModel.PrayerData>(
-          future: _prayerDataFuture,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return Container(
-                color: Colors.blueGrey[900],
-                child: const Center(child: CircularProgressIndicator(color: Colors.white)),
-              );
-            }
+        body: Consumer(
+          builder: (context,ref,child){
+            final prayerDataAsync = ref.watch(prayerDataProvider);
+            final currentTimeAsync = ref.watch(currentTimeProvider);
 
-            if (snapshot.hasError) {
-              // ... (bahagian ralat kekal sama)
-              return Container(
-                color: Colors.red[900],
-                child: Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Text(
-                      'Ralat memuatkan data: ${snapshot.error}',
-                      style: const TextStyle(color: Colors.white),
-                      textAlign: TextAlign.center,
+            return prayerDataAsync.when(
+              data: (prayerData){
+                final currentTime = currentTimeAsync.valueOrNull ?? DateTime.now();
+                final currentTheme = _getCurrentTheme(prayerData.dailyPrayers);
+                final backgroundTheme = AppThemes.bground;
+                final nextPrayer = getNextPrayer(TimeOfDay.fromDateTime(currentTime), prayerData.dailyPrayers);
+
+                return Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: backgroundTheme.backgroundGradient,
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                     ),
                   ),
-                ),
-              );
-            }
-
-            if (snapshot.hasData) {
-              final prayerData = snapshot.data!;
-              // Hantar senarai solat ke _getCurrentTheme
-              final AppTheme currentTheme = _getCurrentTheme(prayerData.dailyPrayers);
-              final AppTheme backgroundTheme = AppThemes.bground;
-              final currentTimeOfDay = TimeOfDay.fromDateTime(_currentTime);
-              final nextPrayer = getNextPrayer(currentTimeOfDay, prayerData.dailyPrayers);
-
-              return Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: backgroundTheme.backgroundGradient,
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+                  child: GlassmorphicContainer(
+                    borderRadius: 0,
+                    blur: 2,
+                    padding: const EdgeInsets.all(0),
+                    child: HomeScreen(
+                      textColor: currentTheme.textColor,
+                      nextPrayer: nextPrayer,
+                      dailyPrayers: prayerData.dailyPrayers,
+                      location: prayerData.location,
+                      allZones: esolatZones,
+                      selectedZoneCode: ref.watch(zoneProvider),
+                      onZoneChanged: _onZoneChanged,
+                    ), 
                   ),
-                ),
-                child:GlassmorphicContainer(
-                  borderRadius: 0,
-                  blur: 2,
-                  padding: const EdgeInsets.all(0),
-                  child: HomeScreen(
-                  textColor: currentTheme.textColor,
-                  nextPrayer: nextPrayer,
-                  dailyPrayers: prayerData.dailyPrayers,
-                  location: prayerData.location,
-                  // BARU: Hantar senarai zon, zon terpilih, dan fungsi callback
-                  allZones: esolatZones,
-                  selectedZoneCode: selectedZoneCode,
-                  onZoneChanged: _onZoneChanged,
-                ),
-                ),
-                
-              );
-            }
-
-            return const Center(child: Text('Sesuatu yang tidak dijangka berlaku.'));
-          },
+                );
+              }, 
+              error: (err, stack) => Container(
+                decoration: BoxDecoration(gradient: LinearGradient(colors: AppThemes.bground.backgroundGradient)),
+                child: Center(child: Text('Gagal memuatkan data: $err', style: const TextStyle(color: Colors.white))),
+              ), 
+              loading: ()=> Container(
+                decoration: BoxDecoration(gradient: LinearGradient(colors: AppThemes.bground.backgroundGradient)),
+                child: const Center(child: CircularProgressIndicator(color: Colors.white)),
+              )
+            );
+          }
         ),
       ),
     );
