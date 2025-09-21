@@ -1,14 +1,8 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'prayer_model.dart';
+import '../models/prayer_model.dart';
 
-class PrayerData {
-  final String location;
-  final List<Prayer> dailyPrayers;
-
-  PrayerData({required this.location, required this.dailyPrayers});
-}
 
 Color _colorFromHex(String hexColor) {
   hexColor = hexColor.replaceAll("#", "");
@@ -34,7 +28,7 @@ Future<PrayerData> loadPrayerTimes({required String zoneCode}) async {
       }
 
       final List<dynamic> prayerTimesList = jsonResponse['prayerTime'];
-      final String location = "Zon: ${jsonResponse['zone']}";
+      final String location = "${jsonResponse['zone']}";
 
       if (prayerTimesList.isEmpty) {
         throw Exception('Senarai waktu solat dari API adalah kosong.');
@@ -60,6 +54,7 @@ Future<PrayerData> loadPrayerTimes({required String zoneCode}) async {
           colors: (p['colors'] as List<String>).map((hex) => _colorFromHex(hex)).toList(),
         );
       }).toList();
+      
 
       return PrayerData(location: location, dailyPrayers: dailyPrayers);
 

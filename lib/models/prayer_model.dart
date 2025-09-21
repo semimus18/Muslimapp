@@ -1,5 +1,15 @@
 import 'package:flutter/material.dart';
 
+class PrayerData {
+  final List<Prayer> dailyPrayers;
+  final String location;
+
+  PrayerData({
+    required this.dailyPrayers,
+    required this.location,
+  });
+}
+
 class Prayer {
   final String name;
   final TimeOfDay time;

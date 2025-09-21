@@ -50,4 +50,9 @@ class AppThemes {
     backgroundGradient: [Color(0xFF1E3A8A), Color(0xFF4338CA)],
     textColor: Color(0xFFDBEAFE),
   );
+
+  static const AppTheme bground = AppTheme(
+    backgroundGradient: [Color.fromARGB(255, 204, 237, 241), Color.fromARGB(255, 243, 231, 245)],
+    textColor: Color(0xFFDBEAFE),
+  );
 }
