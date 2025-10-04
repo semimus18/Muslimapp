@@ -1,17 +1,27 @@
-import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:muslimapp/services/storage_service.dart';
 
-part 'zone_provider.g.dart';
+final zoneProvider = StateNotifierProvider<ZoneNotifier, String>((ref) {
+  return ZoneNotifier();
+});
 
-@riverpod
-class Zone extends _$Zone {
-  @override
-  String build() {
-    // Nilai awal untuk kod zon
-    return 'WLY01';
+class ZoneNotifier extends StateNotifier<String> {
+  final _storage = StorageService();
+
+  ZoneNotifier() : super('WLY01') { // default zone
+    _init();
   }
 
-  void setZone(String newZoneCode) {
-    // Kemas kini nilai zon
-    state = newZoneCode;
+  Future<void> _init() async {
+    final savedZone = await _storage.loadZone();
+    if (savedZone != null) {
+      state = savedZone;
+    }
+  }
+
+  void setZone(String zoneCode) {
+    state = zoneCode;
+    _storage.saveZone(zoneCode);
   }
 }
+

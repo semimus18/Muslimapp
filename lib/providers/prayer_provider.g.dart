@@ -6,7 +6,7 @@ part of 'prayer_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$hijriDateHash() => r'2f8e16c6badbabb149d1cc9a8961e990f8532a9c';
+String _$hijriDateHash() => r'b159e4bebc54facaa5637065e781705d1d690d2f';
 
 /// See also [hijriDate].
 @ProviderFor(hijriDate)
@@ -23,7 +23,7 @@ final hijriDateProvider = AutoDisposeProvider<String>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef HijriDateRef = AutoDisposeProviderRef<String>;
-String _$prayerDataHash() => r'd299ecda36c4ca8eb952730cf95e35f8911b7e69';
+String _$prayerDataHash() => r'69f1375cc7f2ef3ff5ca837c539b72da91512c0f';
 
 /// See also [PrayerData].
 @ProviderFor(PrayerData)
