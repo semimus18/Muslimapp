@@ -1,0 +1,1 @@
+import 'package:hijri_calendar/hijri_calendar.dart'; void main() { final config = HijriCalendarConfig.now(); print('Raw output:'); print(config.toString()); print('Complete debug info from the library:'); }

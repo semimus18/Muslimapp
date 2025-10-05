@@ -25,17 +25,37 @@ class PrayerData extends _$PrayerData {
 // PROVIDER UNTUK TARIKH HIJRIAH (GUNA KOD MANUAL)
 @riverpod
 String hijriDate(HijriDateRef ref) {
-  final currentTimeAsync = ref.watch(currentTimeProvider);
+  final now = DateTime.now();
+  final prayerDataAsync = ref.watch(prayerDataProvider);
 
-  return currentTimeAsync.when(
-    data: (now) {
-      // 1. Guna fungsi dari fail utiliti kita
-      var hijriDate = HijriDate.fromGregorian(now);
-      
-      // 2. Formatkan tarikh kepada String
-      return hijriDate.toFormat("dd MMMM yyyy");
-    },
-    loading: () => '...',
-    error: (err, stack) => 'Ralat Tarikh',
+  if (prayerDataAsync.isLoading) {
+    return '...';
+  }
+  if (prayerDataAsync.hasError) {
+    return 'Ralat Tarikh';
+  }
+
+  final prayerData = prayerDataAsync.value!;
+
+  // Cari waktu maghrib dari dailyPrayers
+  final maghribPrayer = prayerData.dailyPrayers.firstWhere(
+    (p) => p.name.toLowerCase() == 'maghrib',
+    orElse: () => prayerData.dailyPrayers[0],
   );
+  // Gabungkan tarikh hari ini dengan waktu maghrib
+  final maghribTime = DateTime(
+    now.year,
+    now.month,
+    now.day,
+    maghribPrayer.time.hour,
+    maghribPrayer.time.minute,
+  );
+
+  // Jika sudah lepas maghrib, tambah 1 hari pada Gregorian sebelum convert
+  DateTime gregorianForHijri = now;
+  if (now.isAfter(maghribTime)) {
+    gregorianForHijri = now.add(const Duration(days: 1));
+  }
+  var hijriDate = HijriDate.fromGregorian(gregorianForHijri);
+  return hijriDate.toFormat("dd MMMM yyyy");
 }

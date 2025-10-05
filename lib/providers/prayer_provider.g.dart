@@ -6,7 +6,7 @@ part of 'prayer_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$hijriDateHash() => r'b159e4bebc54facaa5637065e781705d1d690d2f';
+String _$hijriDateHash() => r'1673f55afbee722d40e84dda9086735f26a88a83';
 
 /// See also [hijriDate].
 @ProviderFor(hijriDate)

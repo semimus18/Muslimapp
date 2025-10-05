@@ -1,0 +1,364 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
+import 'package:go_router/go_router.dart';
+import 'package:muslimapp/models/features_model.dart';
+import 'package:muslimapp/models/prayer_model.dart';
+import 'package:muslimapp/models/zone_model.dart';
+import 'package:muslimapp/providers/theme_provider.dart';
+import 'package:muslimapp/providers/time_provider.dart';
+import 'package:muslimapp/providers/prayer_provider.dart';
+import 'package:muslimapp/providers/zone_provider.dart';
+import 'package:muslimapp/services/prayer_service.dart';
+import 'package:muslimapp/widgets/prayer_dynamic_background.dart';
+import 'package:muslimapp/widgets/theme_test_controls.dart';
+import 'package:muslimapp/widgets/theme_switcher.dart';
+
+class HomeScreen extends ConsumerWidget {
+  const HomeScreen({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final dailyPrayersAsync = ref.watch(prayerDataProvider);
+    final selectedZoneCode = ref.watch(zoneProvider);
+    final allZones = esolatZones;
+
+    return dailyPrayersAsync.when(
+      data: (prayerData) {
+        final nextPrayer = getNextPrayer(
+          TimeOfDay.fromDateTime(DateTime.now()),
+          prayerData.dailyPrayers,
+        );
+        final currentPrayer = getCurrentPrayer(
+          TimeOfDay.fromDateTime(DateTime.now()),
+          prayerData.dailyPrayers,
+        );
+        final selectedZone = allZones.firstWhere(
+          (zone) => zone.code == selectedZoneCode,
+          orElse: () => EsolatZone(code: '?', state: '', description: ''),
+        );
+        final zonDesc = selectedZone.description;
+
+        return PrayerDynamicBackground(
+          child: SafeArea(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return SingleChildScrollView(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: constraints.maxHeight,
+                    ),
+                    // Use transparent container to make sure background is visible
+                    child: Container(
+                      color: Colors.transparent,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            _buildHeader(ref),
+                            const SizedBox(height: 24),
+                            _buildNextPrayerCard(context,nextPrayer, zonDesc,currentPrayer),
+                          const SizedBox(height: 32),
+                          _buildDailyPrayerList(context, prayerData.dailyPrayers, nextPrayer),
+                          const SizedBox(height: 24),
+                          // Theme test panel for developers
+                          const ThemeTestControls(),
+                          const SizedBox(height: 24),
+                          const Text(
+                            'Features',
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF1E3A8A),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          _buildFeaturesList(),
+                          const SizedBox(height: 24),
+                        ],
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (err, stack) => Center(child: Text('Gagal memuatkan data: $err')),
+    );
+  }
+
+  Widget _buildHeader(WidgetRef ref) {
+    final currentTimeAsync = ref.watch(currentTimeProvider);
+    final currentTime = currentTimeAsync.valueOrNull ?? DateTime.now();
+    final formattedTime = DateFormat('HH:mm:ss').format(currentTime);
+
+    return Column(
+      children: [
+        const Text(
+          'IslamVerse ✨',
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF1E3A8A),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.star, size: 14, color: Color(0xFF1E3A8A)),
+            const SizedBox(width: 8),
+            Text(
+              ref.watch(hijriDateProvider),
+              style: const TextStyle(
+                fontSize: 14,
+                color: Color(0xFF1E3A8A),
+              ),
+            ),
+            const SizedBox(width: 8),
+            const Icon(Icons.star, size: 14, color: Color(0xFF1E3A8A)),
+          ],
+        ),
+        const SizedBox(height: 2),
+        Text(
+          formattedTime,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF1E3A8A),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildNextPrayerCard(BuildContext context, Prayer nextPrayer, String zonDesc, Prayer currentPrayer) {
+    final formattedTime = '${nextPrayer.time.hour.toString().padLeft(2, '0')}:${nextPrayer.time.minute.toString().padLeft(2, '0')}';
+    
+    // Menggunakan Consumer widget untuk mengakses themeTypeProvider
+    return Consumer(builder: (context, ref, _) {
+      // Dapatkan current themeType
+      final themeType = ref.watch(themeTypeProvider);
+      
+      // Tentukan prayer yang akan digunakan untuk warna
+      final Prayer themeSourcePrayer = themeType == ThemeType.auto
+          ? currentPrayer
+          : getPrayerByThemeType(themeType, [currentPrayer, nextPrayer]) ?? currentPrayer;
+    
+      return Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(24),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(24),
+          onTap: () {
+            context.go('/prayer-info/${nextPrayer.name}', extra: nextPrayer);
+          },
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: themeSourcePrayer.colors,  // Menggunakan warna dari prayer yang dipilih
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.15),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
+                )
+              ],
+            ),
+            child: Column(
+              children: [
+                // Baris untuk pilih tema
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Solat Seterusnya',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    // Butang tukar tema
+                    Consumer(
+                      builder: (context, ref, _) {
+                        // Fetch prayer data
+                        final prayerData = ref.watch(prayerDataProvider).valueOrNull;
+                        final prayers = prayerData?.dailyPrayers ?? [];
+                        
+                        // Use ThemeSwitcher widget from widgets folder
+                        return ThemeSwitcher(prayers: prayers);
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  nextPrayer.name,
+                  style: const TextStyle(
+                    fontSize: 40,
+                    fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                formattedTime,
+                style: const TextStyle(
+                  fontSize: 24,
+                  color: Colors.white70,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                zonDesc,
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: Colors.white70,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDailyPrayerList(BuildContext context, List<Prayer> dailyPrayers, Prayer nextPrayer) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: dailyPrayers.map((prayer) {
+        return Expanded(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(15),
+                onTap: () {
+                  // Navigasi ke skrin maklumat solat yang baru
+                  context.go('/prayer-info/${prayer.name}', extra: prayer);
+                },
+                child: _buildPrayerItem(prayer, nextPrayer),
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildPrayerItem(Prayer prayer, Prayer nextPrayer) {
+    final formatedTime =
+        '${prayer.time.hour.toString().padLeft(2, '0')}:${prayer.time.minute.toString().padLeft(2, '0')}';
+    final bool isNextPrayer = prayer.name == nextPrayer.name;
+    return Container(
+      padding: const EdgeInsets.all(0),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(15),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.15),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          )
+        ],
+      ),
+      child: Column(
+        children: [
+          const SizedBox(height: 8),
+          Text(
+            prayer.icon,
+            style: const TextStyle(fontSize: 24),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            prayer.name,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: isNextPrayer ? const Color(0xFF1E3A8A) : Colors.black,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            formatedTime,
+            style: const TextStyle(
+              fontSize: 12,
+              color: Colors.black,
+            ),
+          ),
+          const SizedBox(height: 8),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFeaturesList() {
+    final features = [
+      const Feature(icon: Icons.menu_book, label: "Doa"),
+      const Feature(icon: Icons.book, label: "Al-Quran"),
+      const Feature(icon: Icons.explore, label: "Kiblat"),
+      const Feature(icon: Icons.access_time, label: "Haji"),
+      const Feature(icon: Icons.menu_book, label: "Tasbih"),
+      const Feature(icon: Icons.book, label: "Halal Finder"),
+      const Feature(icon: Icons.explore, label: "Meditation"),
+      const Feature(icon: Icons.access_time, label: "Mathurat"),
+    ];
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.15),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          )
+        ],
+      ),
+      child: GridView.count(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        crossAxisCount: 4,
+        mainAxisSpacing: 18,
+        crossAxisSpacing: 18,
+        children: features.map((feature) {
+          return _buildFeatureIcon(feature.icon, feature.label);
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildFeatureIcon(IconData icon, String label) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 28),
+        const SizedBox(height: 8),
+        Flexible(
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+          ),
+        ),
+      ],
+    );
+  }
+  
+  // Theme Switcher button
+}

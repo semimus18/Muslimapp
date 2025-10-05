@@ -1,0 +1,1 @@
+import 'package:hijri_calendar/hijri_calendar.dart'; void main() { print('Creating from date:'); final date = DateTime.now(); final config = HijriCalendarConfig.now(); HijriCalendarConfig.addLocale('ms', {'long': {1: 'Muharram'}}); print(config.getLongMonthName());}

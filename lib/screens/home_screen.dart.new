@@ -5,12 +5,38 @@ import 'package:go_router/go_router.dart';
 import 'package:muslimapp/models/features_model.dart';
 import 'package:muslimapp/models/prayer_model.dart';
 import 'package:muslimapp/models/zone_model.dart';
-
+import 'package:muslimapp/providers/theme_provider.dart';
 import 'package:muslimapp/providers/time_provider.dart';
 import 'package:muslimapp/providers/prayer_provider.dart';
 import 'package:muslimapp/providers/zone_provider.dart';
+import 'package:muslimapp/providers/theme_test_provider.dart';
 import 'package:muslimapp/services/prayer_service.dart';
 import 'package:muslimapp/widgets/prayer_dynamic_background.dart';
+import 'package:muslimapp/widgets/theme_test_controls.dart';
+
+// Fungsi untuk mendapatkan prayer berdasarkan periode waktu solat yang dipilih
+Prayer getPrayerForPeriod(PrayerPeriod? period, Prayer currentPrayer, Prayer nextPrayer) {
+  if (period == null) {
+    return currentPrayer; // Gunakan current prayer jika tidak ada periode yang dipilih
+  }
+  
+  // Gunakan prayer yang sesuai dari prayers yang ada
+  switch (period) {
+    case PrayerPeriod.fajr:
+      return currentPrayer.name == "Fajr" ? currentPrayer : nextPrayer.name == "Fajr" ? nextPrayer : currentPrayer;
+    case PrayerPeriod.dhuhr:
+      return currentPrayer.name == "Dhuhr" ? currentPrayer : nextPrayer.name == "Dhuhr" ? nextPrayer : currentPrayer;
+    case PrayerPeriod.asr:
+      return currentPrayer.name == "Asr" ? currentPrayer : nextPrayer.name == "Asr" ? nextPrayer : currentPrayer;
+    case PrayerPeriod.maghrib:
+      return currentPrayer.name == "Maghrib" ? currentPrayer : nextPrayer.name == "Maghrib" ? nextPrayer : currentPrayer;
+    case PrayerPeriod.isha:
+      return currentPrayer.name == "Isha" ? currentPrayer : nextPrayer.name == "Isha" ? nextPrayer : currentPrayer;
+    // Default: gunakan prayer saat ini untuk periode lainnya
+    default:
+      return currentPrayer;
+  }
+}
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -55,11 +81,14 @@ class HomeScreen extends ConsumerWidget {
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             _buildHeader(ref),
-                            const SizedBox(height: 8),
-                            _buildNextPrayerCard(context, nextPrayer, zonDesc, currentPrayer, ref,prayerData.dailyPrayers),
+                            const SizedBox(height: 24),
+                            _buildNextPrayerCard(context, nextPrayer, zonDesc, currentPrayer),
                             const SizedBox(height: 32),
-                            // _buildDailyPrayerList(context, prayerData.dailyPrayers, nextPrayer),
-                            // const SizedBox(height: 24),
+                            _buildDailyPrayerList(context, prayerData.dailyPrayers, nextPrayer),
+                            const SizedBox(height: 24),
+                            // Theme test panel for developers
+                            const ThemeTestControls(),
+                            const SizedBox(height: 24),
                             const Text(
                               'Features',
                               style: TextStyle(
@@ -88,29 +117,52 @@ class HomeScreen extends ConsumerWidget {
   }
 
   Widget _buildHeader(WidgetRef ref) {
-    // final currentTimeAsync = ref.watch(currentTimeProvider);
-    // final currentTime = currentTimeAsync.valueOrNull ?? DateTime.now();
-    // final formattedTime = DateFormat('HH:mm:ss').format(currentTime);
+    final currentTimeAsync = ref.watch(currentTimeProvider);
+    final currentTime = currentTimeAsync.valueOrNull ?? DateTime.now();
+    final formattedTime = DateFormat('HH:mm:ss').format(currentTime);
 
     return Column(
       children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.access_time, size: 16),
+            const SizedBox(width: 4),
+            Text(
+              formattedTime,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF1E3A8A),
+              ),
+            ),
+          ],
+        ),
         const SizedBox(height: 8),
         Text(
-          "Muslim App",
+          DateFormat('EEEE, d MMMM y').format(currentTime),
           style: const TextStyle(
-            fontSize: 32,
+            fontSize: 14,
             fontWeight: FontWeight.w600,
-            color: Color.fromARGB(255, 247, 247, 248),
+            color: Color(0xFF1E3A8A),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildNextPrayerCard(BuildContext context, Prayer nextPrayer, String zonDesc, Prayer currentPrayer, WidgetRef ref,List<Prayer> dailyPrayers) {
+  Widget _buildNextPrayerCard(BuildContext context, Prayer nextPrayer, String zonDesc, Prayer currentPrayer) {
     final formattedTime = '${nextPrayer.time.hour.toString().padLeft(2, '0')}:${nextPrayer.time.minute.toString().padLeft(2, '0')}';
-    final currentHijriDate = ref.watch(hijriDateProvider);
-    return Material(
+    
+    return Consumer(
+      builder: (context, ref, _) {
+        // Ambil test prayer period dari provider
+        final testPrayerPeriod = ref.watch(testPrayerPeriodProvider);
+        
+        // Tentukan prayer yang akan digunakan untuk warna
+        final Prayer prayerForTheme = getPrayerForPeriod(testPrayerPeriod, currentPrayer, nextPrayer);
+        
+        return Material(
           color: Colors.transparent,
           borderRadius: BorderRadius.circular(24),
           child: InkWell(
@@ -122,7 +174,7 @@ class HomeScreen extends ConsumerWidget {
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: currentPrayer.colors,  // Menggunakan warna dari prayer semasa
+                  colors: prayerForTheme.colors,  // Menggunakan warna dari prayer berdasarkan tema yang dipilih
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -135,130 +187,53 @@ class HomeScreen extends ConsumerWidget {
                   )
                 ],
               ),
-          child: Column(
-            children: [
-              // Baris untuk judul
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              child: Column(
                 children: [
+                  // Baris untuk judul
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Solat Seterusnya',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
                   Text(
-                    currentHijriDate,
+                    nextPrayer.name,
                     style: const TextStyle(
-                      fontSize: 18,
+                      fontSize: 40,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
                     ),
                   ),
-                  Row(
-                    children: [
-                      Text(
-                        "Sunny",
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.normal,
-                          color: Colors.white,
-                        ),
-                      ),
-                      SizedBox(width: 4),
-                      Icon(Icons.sunny, color: Colors.white)
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 1),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        zonDesc,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.normal,
-                          color: Colors.white
-                        ),
-                        ),
-                        const SizedBox(height: 4),
-                        Icon(
-                          Icons.location_pin,
-                          size: 16,
-                          color: Colors.white,
-                        ),
-                    ],
-                  ),
+                  const SizedBox(height: 8),
                   Text(
-                    "28°",
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white
+                    formattedTime,
+                    style: const TextStyle(
+                      fontSize: 24,
+                      color: Colors.white70,
                     ),
-                  )
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    zonDesc,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Colors.white70,
+                    ),
+                  ),
                 ],
               ),
-              const SizedBox(height: 16),
-              Container(
-                width: double.infinity,
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.3),
-                    borderRadius: BorderRadius.circular(15),
-                    boxShadow: [
-                        BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 10,
-                            offset: const Offset(0, 5),
-                        )
-                    ]
-                           
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                        const Text(
-                      "Waktu seterusnya",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.normal
-                      ),
-                    ),
-                    
-                    Text(
-                      nextPrayer.name,
-                      style: const TextStyle(
-                        fontSize: 40,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      formattedTime,
-                      style: const TextStyle(
-                        fontSize: 24,
-                        color: Colors.white70,
-                      ),
-                    ),
-                  
-                    Text(
-                      "3 jam 20 minit",
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: Colors.white70,
-                      ),
-                    ),
-                          ],
-                  ),
-              ),
-              
-              const SizedBox(height: 16),  
-              _buildDailyPrayerList(context, dailyPrayers, nextPrayer),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      }
     );
   }
 

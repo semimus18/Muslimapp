@@ -1,6 +1,3 @@
-// Kod ini adalah adaptasi ringkas dari algoritma penukaran tarikh
-// untuk digunakan secara terus tanpa memerlukan pakej luaran.
-
 class HijriDate {
   final int day;
   final int month;
@@ -16,71 +13,34 @@ class HijriDate {
 
   String toFormat(String format) {
     if (format == "dd MMMM yyyy") {
-      // Pembetulan untuk nama bulan (indeks bermula dari 0)
       final monthName = _monthNames[month - 1];
       return "$day $monthName $year";
     }
     return "$day/$month/$year";
   }
 
-  // --- LOGIK PENUKARAN UTAMA ---
-  static HijriDate fromGregorian(DateTime gregorianDate) {
-    int d = gregorianDate.day;
-    int m = gregorianDate.month;
-    int y = gregorianDate.year;
-
-    if (m < 3) {
-      y -= 1;
-      m += 12;
+  /// Algoritma ringkas (tabular) untuk penukaran Gregorian ke Hijri
+  static HijriDate fromGregorian(DateTime date, {DateTime? maghribTime}) {
+    DateTime gregorian = date;
+    if (maghribTime != null && date.isAfter(maghribTime)) {
+      // Jika sudah lepas maghrib, tambah 1 hari
+      gregorian = date.add(const Duration(days: 1));
     }
+    int day = gregorian.day;
+    int month = gregorian.month;
+    int year = gregorian.year;
 
-    int a = y ~/ 100;
-    int b = 2 - a + (a ~/ 4);
+    // Formula tabular (bukan Umm al-Qura, tapi cukup tepat untuk kegunaan umum)
+    int jd = (gregorian.millisecondsSinceEpoch ~/ 86400000) + 2440588;
+    int l = jd - 1948440 + 10632;
+    int n = ((l - 1) / 10631).floor();
+    l = l - 10631 * n + 354;
+    int j = (((10985 - l) / 5316).floor()) * (((50 * l) / 17719).floor()) + ((l / 5670).floor()) * (((43 * l) / 15238).floor());
+    l = l - (((30 - j) / 15).floor()) * (((17719 * j) / 50).floor()) - ((j / 16).floor()) * (((15238 * j) / 43).floor()) + 29;
+    int m = (24 * l / 709).floor();
+    int d = l - (709 * m / 24).floor();
+    int y = 30 * n + j - 30;
 
-    int jd = (365.25 * (y + 4716)).floor() + (30.6001 * (m + 1)).floor() + d + b - 1524;
-
-    b = ((jd - 1867216.25) / 36524.25).floor();
-    a = jd + 1 + b - (b ~/ 4);
-
-    int bb = a + 1524;
-    int cc = ((bb - 122.1) / 365.25).floor();
-    int dd = (365.25 * cc).floor();
-    int ee = ((bb - dd) / 30.6001).floor();
-
-    d = bb - dd - (30.6001 * ee).floor();
-    m = ee - (ee > 13 ? 13 : 1);
-    y = cc - (m > 2 ? 4716 : 4715);
-
-    int wd = (jd + 1) % 7;
-
-    int iyear = 10631 * y + 10631;
-    int imonth = 354 * m + 354;
-    int iday = 30 * d + 30;
-
-    double ijd = (iyear / 10631.0) + (imonth / 354.0) + (iday / 30.0) + (jd - 227015);
-    
-    double days = ijd - 227015;
-    int cycles = (days / 10631).floor();
-    int cday = (days - (cycles * 10631)).floor();
-    int year_ = (cday / 354).floor();
-    int yday = (cday - (year_ * 354)).floor();
-    int month_ = (yday / 29.5).floor();
-    int day_ = (yday - (month_ * 29.5)).floor();
-
-    int hYear = (30 * cycles) + year_ + 1;
-    int hMonth = month_ + 1;
-    int hDay = day_ + 1;
-
-    // Pembetulan kecil (adjustment)
-    return HijriDate(hDay, hMonth, hYear).adjust();
-  }
-
-  // Fungsi pembetulan untuk tarikh
-  HijriDate adjust() {
-    // Ini adalah pembetulan mudah. Dalam kes-kes tertentu, ia mungkin
-    // berbeza satu hari bergantung pada penglihatan anak bulan.
-    // Untuk kebanyakan kes, ini sudah mencukupi.
-    // Jika tarikh lari satu hari, anda boleh ubah nilai di sini, cth: `day - 1`
-    return this; 
+    return HijriDate(d, m, y);
   }
 }
