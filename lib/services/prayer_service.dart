@@ -41,7 +41,7 @@ Future<PrayerData> loadPrayerTimes({required String zoneCode}) async {
         {
           'name': 'Fajr',
           'key': 'fajr',
-          'icon': '🌅',
+          'icon': 'prayer/fajr.png',
           'colors': ["#818CF8", "#A78BFA", "#F472B6"],
           'title': 'Subuh',
           'translation': 'Dawn',
@@ -50,7 +50,7 @@ Future<PrayerData> loadPrayerTimes({required String zoneCode}) async {
         {
           'name': 'Dhuhr',
           'key': 'dhuhr',
-          'icon': '☀️',
+          'icon': 'prayer/zohor.png',
           'colors': ["#FBBF24", "#F97316", "#EF4444"],
           'title': 'Zohor',
           'translation': 'Noon',
@@ -59,7 +59,7 @@ Future<PrayerData> loadPrayerTimes({required String zoneCode}) async {
         {
           'name': 'Asr',
           'key': 'asr',
-          'icon': '🌤️',
+          'icon': 'prayer/zohor.png',
           'colors': ["#F59E0B", "#EAB308", "#F97316"],
           'title': 'Asar',
           'translation': 'Afternoon',
@@ -68,7 +68,7 @@ Future<PrayerData> loadPrayerTimes({required String zoneCode}) async {
         {
           'name': 'Maghrib',
           'key': 'maghrib',
-          'icon': '🌇',
+          'icon': 'prayer/maghrib.png',
           'colors': ["#F97316", "#EF4444", "#EC4899"],
           'title': 'Maghrib',
           'translation': 'Sunset',
@@ -77,7 +77,7 @@ Future<PrayerData> loadPrayerTimes({required String zoneCode}) async {
         {
           'name': 'Isha',
           'key': 'isha',
-          'icon': '🌙',
+          'icon': 'prayer/isyak.png',
           'colors': ["#3B82F6", "#6366F1", "#8B5CF6"],
           'title': 'Isyak',
           'translation': 'Night',
@@ -173,6 +173,24 @@ class PrayerTimingInfo {
   });
 }
 
+// Fungsi untuk mendapatkan nama tema
+String getKeySolat(String type) {
+  switch (type) {
+    case "Fajr":
+      return 'fajr';
+    case "Dhuhr":
+      return 'dhuhr';
+    case "Asr":
+      return 'asr';
+    case "Maghrib":
+      return 'maghrib';
+    case "Isyak":
+      return 'isha';
+    default:
+      throw ArgumentError('Invalid prayer type: $type');
+  }
+}
+
 // Dapatkan maklumat lengkap waktu solat semasa dan seterusnya
 PrayerTimingInfo getPrayerTimingInfo(TimeOfDay currentTime, List<Prayer> dailyPrayers) {
   // Salin senarai dan tambah Fajr hari seterusnya
@@ -246,3 +264,4 @@ PrayerTimingInfo getPrayerTimingInfo(TimeOfDay currentTime, List<Prayer> dailyPr
     progressPercent: progressPercent,
   );
 }
+

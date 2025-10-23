@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:muslimapp/models/prayer_model.dart';
+import 'package:muslimapp/themes/text_styles.dart';
 import 'package:muslimapp/widgets/glassmorphic_container.dart';
 import 'package:muslimapp/widgets/remaining_time_indicator.dart';
 
@@ -60,9 +61,10 @@ class PrayerInfoScreen extends StatelessWidget {
                           // Prayer icon and time
                           Row(
                             children: [
-                              Text(
+                              Image.asset(
                                 prayer.icon,
-                                style: const TextStyle(fontSize: 48),
+                                width: AppImageSizes.normal(context),
+                                height: AppImageSizes.normal(context),
                               ),
                               const SizedBox(width: 16),
                               Column(

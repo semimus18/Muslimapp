@@ -121,7 +121,7 @@ const Map<String, PrayerTheme> prayerThemes = {
     accent: [Color(0xFF60A5FA), Color(0xFF6366F1)], // blue-400, indigo-500
     secondary: [Color(0xFF818CF8), Color(0xFFA21CAF)], // indigo-400, purple-500
     text: Colors.white,
-    subtext: Color(0xFFBFDBFE), // blue-200
+    subtext: Colors.white, // blue-200
     icon: '🌙',
   ),
 };

@@ -6,6 +6,7 @@ import 'package:muslimapp/screens/home_screen.dart';
 import 'package:muslimapp/screens/main_navigation_screen.dart';
 import 'package:muslimapp/screens/prayer_info_screen.dart';
 import 'package:muslimapp/screens/prayer_screen.dart';
+import 'package:muslimapp/widgets/location_test_widget.dart';
 
 final goRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -23,6 +24,12 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           final prayerName = state.pathParameters['prayerName']!;
           return PrayerScreen();
         },
+      ),
+      // 🎯 REACTIVE LOCATION TEST PAGE
+      GoRoute(
+        path: '/location-test',
+        name: 'locationTest',
+        builder: (context, state) => const LocationTestWidget(),
       ),
       GoRoute(
         path: '/prayer-info/:prayerId',

@@ -1,16 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
 import 'package:muslimapp/models/features_model.dart';
 import 'package:muslimapp/models/prayer_model.dart';
-import 'package:muslimapp/models/zone_model.dart';
+import 'package:muslimapp/providers/location_provider.dart';
+import 'package:muslimapp/providers/location_zone_provider.dart';
+import 'package:muslimapp/providers/next_prayer_provider.dart';
 
-import 'package:muslimapp/providers/time_provider.dart';
 import 'package:muslimapp/providers/prayer_provider.dart';
-import 'package:muslimapp/providers/zone_provider.dart';
 import 'package:muslimapp/services/prayer_service.dart';
+import 'package:muslimapp/themes/text_styles.dart';
+import 'package:muslimapp/themes/themes.dart';
+import 'package:muslimapp/util/weather_util.dart';
 import 'package:muslimapp/widgets/prayer_dynamic_background.dart';
+
+import 'package:muslimapp/providers/weather_provider.dart'; // import provider
+import 'package:muslimapp/util/glow_util.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -18,8 +23,6 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final dailyPrayersAsync = ref.watch(prayerDataProvider);
-    final selectedZoneCode = ref.watch(zoneProvider);
-    final allZones = esolatZones;
 
     return dailyPrayersAsync.when(
       data: (prayerData) {
@@ -31,12 +34,8 @@ class HomeScreen extends ConsumerWidget {
           TimeOfDay.fromDateTime(DateTime.now()),
           prayerData.dailyPrayers,
         );
-        final selectedZone = allZones.firstWhere(
-          (zone) => zone.code == selectedZoneCode,
-          orElse: () => EsolatZone(code: '?', state: '', description: ''),
-        );
-        final zonDesc = selectedZone.description;
 
+        final theme = prayerThemes['isha']!;
         return PrayerDynamicBackground(
           child: SafeArea(
             child: LayoutBuilder(
@@ -50,23 +49,19 @@ class HomeScreen extends ConsumerWidget {
                     child: Container(
                       color: Colors.transparent,
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                        padding: const EdgeInsets.symmetric(horizontal: 15.0),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            _buildHeader(ref),
+                            _buildHeader(context,ref,theme),
                             const SizedBox(height: 8),
-                            _buildNextPrayerCard(context, nextPrayer, zonDesc, currentPrayer, ref,prayerData.dailyPrayers),
+                            _buildNextPrayerCard(context, nextPrayer, currentPrayer, ref,prayerData.dailyPrayers,theme),
                             const SizedBox(height: 32),
                             // _buildDailyPrayerList(context, prayerData.dailyPrayers, nextPrayer),
                             // const SizedBox(height: 24),
-                            const Text(
+                            Text(
                               'Features',
-                              style: TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF1E3A8A),
-                              ),
+                              style: AppTextStyles.h1(context,theme)
                             ),
                             const SizedBox(height: 10),
                             _buildFeaturesList(),
@@ -87,7 +82,7 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildHeader(WidgetRef ref) {
+  Widget _buildHeader(BuildContext context,WidgetRef ref, PrayerTheme theme) {
     // final currentTimeAsync = ref.watch(currentTimeProvider);
     // final currentTime = currentTimeAsync.valueOrNull ?? DateTime.now();
     // final formattedTime = DateFormat('HH:mm:ss').format(currentTime);
@@ -97,19 +92,24 @@ class HomeScreen extends ConsumerWidget {
         const SizedBox(height: 8),
         Text(
           "Muslim App",
-          style: const TextStyle(
-            fontSize: 32,
-            fontWeight: FontWeight.w600,
-            color: Color.fromARGB(255, 247, 247, 248),
-          ),
+          style: AppTextStyles.h1(context,theme),
         ),
       ],
     );
   }
 
-  Widget _buildNextPrayerCard(BuildContext context, Prayer nextPrayer, String zonDesc, Prayer currentPrayer, WidgetRef ref,List<Prayer> dailyPrayers) {
+  Widget _buildNextPrayerCard(BuildContext context, Prayer nextPrayer, Prayer currentPrayer, WidgetRef ref,List<Prayer> dailyPrayers,PrayerTheme theme) {
     final formattedTime = '${nextPrayer.time.hour.toString().padLeft(2, '0')}:${nextPrayer.time.minute.toString().padLeft(2, '0')}';
     final currentHijriDate = ref.watch(hijriDateProvider);
+    final weatherAsync = ref.watch(weatherProvider);
+    
+    // 🎯 REACTIVE LOCATION: Auto-updates when location changes
+    final daerahStreamAsync = ref.watch(daerahStreamProvider);
+    
+    // 🕌 AUTO PRAYER ZONE: Automatically selects prayer zone based on location
+    final autoZoneAsync = ref.watch(smartZoneProvider);
+    
+    final countdownPrayer = ref.watch(countdownProvider); 
     return Material(
           color: Colors.transparent,
           borderRadius: BorderRadius.circular(24),
@@ -119,7 +119,7 @@ class HomeScreen extends ConsumerWidget {
               context.go('/prayer-info/${nextPrayer.name}', extra: nextPrayer);
             },
             child: Container(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: currentPrayer.colors,  // Menggunakan warna dari prayer semasa
@@ -143,26 +143,27 @@ class HomeScreen extends ConsumerWidget {
                 children: [
                   Text(
                     currentHijriDate,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
+                    style: AppTextStyles.body(context,theme).copyWith(
+                    fontWeight: FontWeight.bold),
                   ),
-                  Row(
-                    children: [
-                      Text(
-                        "Sunny",
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.normal,
-                          color: Colors.white,
+                  weatherAsync.when(
+                    data: (weather) => Row(
+                      children: [
+                        Text(
+                          "${weather.temperature.toStringAsFixed(1)}°C",
+                          style: AppTextStyles.body(context,theme).copyWith(fontWeight: FontWeight.bold),
                         ),
-                      ),
-                      SizedBox(width: 4),
-                      Icon(Icons.sunny, color: Colors.white)
-                    ],
-                  ),
+                        const SizedBox(width: 4),
+                        Image.asset(
+                          getWeatherAsset(weather.weatherCode),
+                          width: AppIconSizes.normal(context),
+                          height: AppIconSizes.normal(context),
+                        ),// tukar ikut weatherCode jika mahu
+                      ],
+                    ),
+                    loading: () => const SizedBox.shrink(),
+                    error: (e, _) => const Text('Ralat Cuaca', style: TextStyle(color: Colors.white)),
+                  )
                 ],
               ),
               const SizedBox(height: 1),
@@ -171,36 +172,51 @@ class HomeScreen extends ConsumerWidget {
                 children: [
                   Row(
                     children: [
-                      Text(
-                        zonDesc,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.normal,
-                          color: Colors.white
-                        ),
-                        ),
-                        const SizedBox(height: 4),
-                        Icon(
+                      Icon(
                           Icons.location_pin,
-                          size: 16,
+                          size: AppIconSizes.small(context),
                           color: Colors.white,
                         ),
+                        const SizedBox(height: 4),
+                      
+                      // 🎯 REACTIVE LOCATION DISPLAY - Auto updates when location changes
+                      daerahStreamAsync.when(
+                        data: (daerah) => Text(
+                          daerah,
+                          style: AppTextStyles.caption(context,theme),
+                        ),
+                        loading: () => Row(
+                          children: [
+                            SizedBox(
+                              width: 12,
+                              height: 12,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white.withOpacity(0.7)),
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Text('Mencari lokasi...',
+                              style: AppTextStyles.caption(context,theme),
+                            ),
+                          ],
+                        ),
+                        error: (e, _) => Text(
+                          'Ralat lokasi',
+                          style: AppTextStyles.caption(context,theme).copyWith(
+                            color: Colors.red.withOpacity(0.8),
+                          ),
+                        ),
+                      ),
+ 
                     ],
                   ),
-                  Text(
-                    "28°",
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white
-                    ),
-                  )
                 ],
               ),
               const SizedBox(height: 16),
               Container(
                 width: double.infinity,
-                  padding: const EdgeInsets.all(24),
+                  padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.3),
                     borderRadius: BorderRadius.circular(15),
@@ -216,45 +232,26 @@ class HomeScreen extends ConsumerWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                        const Text(
+                        Text(
                       "Waktu seterusnya",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.normal
-                      ),
-                    ),
-                    
-                    Text(
-                      nextPrayer.name,
-                      style: const TextStyle(
-                        fontSize: 40,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
+                      style: AppTextStyles.body(context,theme),
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      formattedTime,
-                      style: const TextStyle(
-                        fontSize: 24,
-                        color: Colors.white70,
-                      ),
+                      "${nextPrayer.name} - $formattedTime",
+                      style: AppTextStyles.h1(context,theme),
                     ),
-                  
+                    const SizedBox(height: 8),
                     Text(
-                      "3 jam 20 minit",
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: Colors.white70,
-                      ),
+                      countdownPrayer,
+                      style: AppTextStyles.body(context,theme),
                     ),
                           ],
                   ),
               ),
               
               const SizedBox(height: 16),  
-              _buildDailyPrayerList(context, dailyPrayers, nextPrayer),
+              _buildDailyPrayerList(context, dailyPrayers, nextPrayer,theme),
             ],
           ),
         ),
@@ -262,9 +259,9 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildDailyPrayerList(BuildContext context, List<Prayer> dailyPrayers, Prayer nextPrayer) {
+  Widget _buildDailyPrayerList(BuildContext context, List<Prayer> dailyPrayers, Prayer nextPrayer, PrayerTheme theme) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      mainAxisAlignment: MainAxisAlignment.center,
       children: dailyPrayers.map((prayer) {
         return Expanded(
           child: Padding(
@@ -277,7 +274,7 @@ class HomeScreen extends ConsumerWidget {
                   // Navigasi ke skrin maklumat solat yang baru
                   context.go('/prayer-info/${prayer.name}', extra: prayer);
                 },
-                child: _buildPrayerItem(prayer, nextPrayer),
+                child: _buildPrayerItem(prayer, nextPrayer,context,theme),
               ),
             ),
           ),
@@ -286,47 +283,42 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildPrayerItem(Prayer prayer, Prayer nextPrayer) {
+  Widget _buildPrayerItem(Prayer prayer, Prayer nextPrayer, BuildContext context, PrayerTheme theme) {
     final isNext = prayer.name == nextPrayer.name;
     final hour = prayer.time.hour.toString().padLeft(2, '0');
     final minute = prayer.time.minute.toString().padLeft(2, '0');
 
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
       decoration: BoxDecoration(
-        color: isNext ? Colors.white.withOpacity(0.85) : Colors.white.withOpacity(0.3),
+        color: isNext ? const Color.fromARGB(255, 156, 245, 164).withOpacity(0.85) : Colors.white.withOpacity(0.3),
         borderRadius: BorderRadius.circular(15),
-        boxShadow: isNext
-            ? [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 10,
-                  offset: const Offset(0, 5),
-                )
-              ]
-            : null,
+        boxShadow: isNext ? createGlowEffect(color: Colors.greenAccent) : null,
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
+           Image.asset(
+                          prayer.icon,
+                          width: AppIconSizes.large(context),
+                          height: AppIconSizes.large(context),
+                        ),//
           Text(
             prayer.name,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: isNext ? FontWeight.bold : FontWeight.normal,
+            style: AppTextStyles.small(context,theme).copyWith(
+              // fontWeight: isNext ? FontWeight.bold : FontWeight.normal,
               color: isNext ? Colors.black : Colors.white,
-            ),
+            ), 
             textAlign: TextAlign.center,
             overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 4),
           Text(
             '$hour:$minute',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: isNext ? FontWeight.bold : FontWeight.normal,
+            style: AppTextStyles.small(context,theme).copyWith(
+              // fontWeight: isNext ? FontWeight.bold : FontWeight.normal,
               color: isNext ? Colors.black : Colors.white,
-            ),
+            ), 
           ),
         ],
       ),
